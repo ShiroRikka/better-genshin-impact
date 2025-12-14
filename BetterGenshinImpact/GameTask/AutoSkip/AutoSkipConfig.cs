@@ -37,6 +37,12 @@ public partial class AutoSkipConfig : ObservableObject
     private int _afterChooseOptionSleepDelay = 0;
 
     /// <summary>
+    /// 点击对话框前的延迟（毫秒）
+    /// </summary>
+    [ObservableProperty]
+    private int _beforeClickConfirmDelay = 0;
+    
+    /// <summary>
     /// 自动领取每日委托奖励
     /// </summary>
     [ObservableProperty]
@@ -122,6 +128,12 @@ public partial class AutoSkipConfig : ObservableObject
     /// </summary>
     [ObservableProperty]
     private bool _submitGoodsEnabled = true;
+
+    /// <summary>
+    /// 游戏失焦时显示画中画
+    /// </summary>
+    [ObservableProperty]
+    private bool _pictureInPictureEnabled = false;
 
     /// <summary>
     /// 关闭弹出层
