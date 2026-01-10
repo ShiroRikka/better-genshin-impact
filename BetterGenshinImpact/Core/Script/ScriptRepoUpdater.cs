@@ -175,7 +175,12 @@ public class ScriptRepoUpdater : Singleton<ScriptRepoUpdater>
                     {
                         ProxyOptions = { ProxyType = ProxyType.None },
                         Depth = 1, // 浅拉取，只获取最新的提交
-                        CredentialsProvider = CreateCredentialsHandler() // 添加凭据处理器
+                        CredentialsProvider = CreateCredentialsHandler(), // 添加凭据处理器
+                        OnTransferProgress = progress =>
+                        {
+                            onCheckoutProgress?.Invoke($"拉取对象 {progress.ReceivedObjects}/{progress.TotalObjects}", progress.ReceivedObjects, progress.TotalObjects);
+                            return true;
+                        }
                     };
 
                     // 拉取到远程追踪分支
@@ -207,15 +212,9 @@ public class ScriptRepoUpdater : Singleton<ScriptRepoUpdater>
                     else
                     {
                         _logger.LogInformation($"检测到远程更新: 本地 {currentCommitSha?[..7] ?? "无"} -> 远程 {remoteCommitSha[..7]}");
-
-                        // 更新本地分支引用指向远程分支的 commit
-                        repo.Refs.UpdateTarget(localBranch.Reference, remoteBranch.Tip.Id);
-                        _logger.LogInformation("本地分支引用已更新到远程分支");
-
-                        // 检出 repo.json 文件到工作目录
-                        CheckoutRepoJson(repo, remoteBranch.Tip);
-                        _logger.LogInformation("已更新工作目录中的 repo.json 文件");
-
+                        repo?.Dispose();
+                        repo = null;
+                        CloneRepository(repoUrl, repoPath, "release", onCheckoutProgress);
                         updated = true;
                     }
                 }
@@ -225,6 +224,7 @@ public class ScriptRepoUpdater : Singleton<ScriptRepoUpdater>
                 _logger.LogError(ex, "Git仓库更新失败");
                 UIDispatcherHelper.Invoke(() => Toast.Error("脚本仓库更新异常，直接删除后重新克隆\n原因：" + ex.Message));
                 repo?.Dispose();
+                repo = null;
                 CloneRepository(repoUrl, repoPath, "release", onCheckoutProgress);
                 updated = true;
             }
@@ -434,6 +434,11 @@ public class ScriptRepoUpdater : Singleton<ScriptRepoUpdater>
         // options.FetchOptions.Depth = 1; // 浅克隆，只获取最新的提交
         // 设置凭据处理器
         options.FetchOptions.CredentialsProvider = Instance.CreateCredentialsHandler();
+        options.FetchOptions.OnTransferProgress = progress =>
+        {
+            onCheckoutProgress?.Invoke($"拉取对象 {progress.ReceivedObjects}/{progress.TotalObjects}", progress.ReceivedObjects, progress.TotalObjects);
+            return true;
+        };
         // 克隆仓库
         Repository.Clone(repoUrl, repoPath, options);
     }
@@ -469,7 +474,12 @@ public class ScriptRepoUpdater : Singleton<ScriptRepoUpdater>
                 TagFetchMode = TagFetchMode.None,
                 ProxyOptions = { ProxyType = ProxyType.None },
                 Depth = 1, // 浅拉取，只获取最新的提交
-                CredentialsProvider = CreateCredentialsHandler() // 添加凭据处理器
+                CredentialsProvider = CreateCredentialsHandler(), // 添加凭据处理器
+                OnTransferProgress = progress =>
+                {
+                    onCheckoutProgress?.Invoke($"拉取对象 {progress.ReceivedObjects}/{progress.TotalObjects}", progress.ReceivedObjects, progress.TotalObjects);
+                    return true;
+                }
             };
             string refSpec = $"+refs/heads/{branchName}:refs/remotes/origin/{branchName}";
             Commands.Fetch(repo, remote.Name, new[] { refSpec }, fetchOptions, "初始化拉取");
