@@ -100,13 +100,14 @@ public class AutoLeyLineOutcropTask : ISoloTask
                 await RecheckResinAndContinue();
             }
         }
-        catch (NormalEndException e)
+        catch (Exception e) when (e is NormalEndException or TaskCanceledException)
         {
             Logger.LogInformation("任务结束：{Msg}", e.Message);
         }
         catch (Exception e)
         {
-            _logger.LogError(e, "自动地脉花执行失败");
+            _logger.LogDebug(e, "自动地脉花执行失败");
+            _logger.LogError("自动地脉花执行失败:" + e.Message);
             if (_config.IsNotification)
             {
                 Notify.Event("AutoLeyLineOutcrop").Error($"任务失败: {e.Message}");
@@ -122,7 +123,7 @@ public class AutoLeyLineOutcropTask : ISoloTask
             }
             catch (Exception ex)
             {
-                _logger.LogWarning(ex, "退出奖励界面失败");
+                _logger.LogDebug(ex, "地脉花结束后尝试退出奖励界面失败");
             }
 
             if (!_marksStatus)
@@ -905,6 +906,9 @@ public class AutoLeyLineOutcropTask : ISoloTask
         try
         {
             await fightTask;
+        }
+        catch (Exception ex) when (ex is NormalEndException or TaskCanceledException)
+        {
         }
         catch (Exception ex)
         {
